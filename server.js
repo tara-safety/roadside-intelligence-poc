@@ -1,4 +1,5 @@
 const http = require("http");
+const fs = require("fs");
 
 const PORT = process.env.PORT || 3000;
 
@@ -32,12 +33,24 @@ function readRequestBody(req) {
 
 const server = http.createServer(async (req, res) => {
 
-  // Home
+  // Roadside assistance webpage
   if (req.method === "GET" && req.url === "/") {
-    sendJson(res, 200, {
-      project: "Roadside Intelligence POC",
-      status: "online"
+    fs.readFile("index.html", "utf8", (error, html) => {
+
+      if (error) {
+        sendJson(res, 500, {
+          error: "Unable to load roadside assistance page"
+        });
+        return;
+      }
+
+      res.writeHead(200, {
+        "Content-Type": "text/html"
+      });
+
+      res.end(html);
     });
+
     return;
   }
 
@@ -52,6 +65,7 @@ const server = http.createServer(async (req, res) => {
   // Mock roadside assistance request
   if (req.method === "POST" && req.url === "/roadside-request") {
     try {
+
       const requestData = await readRequestBody(req);
 
       sendJson(res, 200, {
@@ -61,6 +75,7 @@ const server = http.createServer(async (req, res) => {
       });
 
     } catch (error) {
+
       sendJson(res, 400, {
         received: false,
         error: "Invalid JSON request"
