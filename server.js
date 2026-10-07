@@ -11,6 +11,70 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data, null, 2));
 }
 
+function recommendResource(request) {
+  const problem = (request.problem || "").toLowerCase();
+  const service = (request.service_requested || "").toLowerCase();
+
+  // No-start / battery-related situation
+  if (
+    problem.includes("won't start") ||
+    problem.includes("will not start") ||
+    problem.includes("dead battery") ||
+    problem.includes("battery")
+  ) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Battery / Starting System",
+      reason: "Reported no-start condition may be serviceable without a tow."
+    };
+  }
+
+  // Flat tire
+  if (
+    service === "flat_tire" ||
+    problem.includes("flat tire")
+  ) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Tire Service",
+      reason: "Reported tire issue may be handled roadside."
+    };
+  }
+
+  // Lockout
+  if (
+    service === "lockout" ||
+    problem.includes("locked") ||
+    problem.includes("keys")
+  ) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Vehicle Lockout",
+      reason: "Reported lockout condition may be handled roadside."
+    };
+  }
+
+  // Fuel
+  if (
+    service === "fuel" ||
+    problem.includes("out of fuel") ||
+    problem.includes("out of gas")
+  ) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Fuel Delivery",
+      reason: "Reported fuel issue may be handled roadside."
+    };
+  }
+
+  // Default
+  return {
+    recommended_resource: "Tow Vehicle",
+    primary_capability: "Vehicle Transport",
+    reason: "Available information indicates a tow assessment is appropriate."
+  };
+}
+
 function readRequestBody(req) {
   return new Promise((resolve, reject) => {
     let body = "";
