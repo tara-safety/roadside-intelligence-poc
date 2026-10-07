@@ -132,11 +132,14 @@ const server = http.createServer(async (req, res) => {
 
       const requestData = await readRequestBody(req);
 
-      sendJson(res, 200, {
-        received: true,
-        message: "Roadside request received",
-        request: requestData
-      });
+      const recommendation = recommendResource(requestData);
+
+sendJson(res, 200, {
+  received: true,
+  message: "Roadside request received",
+  request: requestData,
+  pre_dispatch_recommendation: recommendation
+});
 
     } catch (error) {
 
