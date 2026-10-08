@@ -212,7 +212,6 @@ async function startRecording() {
 }
 
 function stopRecording() {
-  async function uploadRecording() {
   if (!audioChunks.length) {
     document.getElementById("recordingStatus").textContent =
       "No recording available to upload.";
