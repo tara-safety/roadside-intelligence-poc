@@ -154,6 +154,65 @@
 
   <script>
 
+   let mediaRecorder;
+let audioChunks = [];
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true
+    });
+
+    audioChunks = [];
+
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, {
+        type: mediaRecorder.mimeType
+      });
+
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const audioPlayback = document.getElementById("audioPlayback");
+
+      audioPlayback.src = audioUrl;
+      audioPlayback.style.display = "block";
+
+      stream.getTracks().forEach(track => track.stop());
+
+      document.getElementById("recordingStatus").textContent =
+        "Recording complete. You can play it back below.";
+    };
+
+    mediaRecorder.start();
+
+    document.getElementById("recordingStatus").textContent =
+      "Recording vehicle sound...";
+
+  } catch (error) {
+    console.error(error);
+
+    document.getElementById("recordingStatus").textContent =
+      "Microphone access was not available.";
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+
+    document.getElementById("recordingStatus").textContent =
+      "Stopping recording...";
+  }
+}
+ 
     async function sendRequest() {
 
       const result = document.getElementById("result");
