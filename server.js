@@ -152,6 +152,34 @@ sendJson(res, 200, {
     return;
   }
 
+  // Receive vehicle sound recording
+  if (req.method === "POST" && req.url === "/upload-audio") {
+
+    let audioData = [];
+
+    req.on("data", chunk => {
+      audioData.push(chunk);
+    });
+
+    req.on("end", () => {
+
+      const audioBuffer = Buffer.concat(audioData);
+
+      console.log(
+        `Vehicle sound received: ${audioBuffer.length} bytes`
+      );
+
+      sendJson(res, 200, {
+        received: true,
+        message: "Vehicle sound recording received",
+        size_bytes: audioBuffer.length
+      });
+
+    });
+
+    return;
+  }
+  
   // Unknown route
   sendJson(res, 404, {
     error: "Route not found"
