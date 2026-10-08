@@ -211,7 +211,16 @@ async function startRecording() {
   }
 }
 
-function stopRecording() {
+   function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
+
+    document.getElementById("recordingStatus").textContent =
+      "Stopping recording...";
+  }
+}
+
+async function uploadRecording() {
   if (!audioChunks.length) {
     document.getElementById("recordingStatus").textContent =
       "No recording available to upload.";
@@ -254,15 +263,7 @@ function stopRecording() {
       "Unable to upload recording.";
   }
 }
-  
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
-
-    document.getElementById("recordingStatus").textContent =
-      "Stopping recording...";
-  }
-}
- 
+    
     async function sendRequest() {
 
       const result = document.getElementById("result");
