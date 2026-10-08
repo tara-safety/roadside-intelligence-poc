@@ -212,6 +212,50 @@ async function startRecording() {
 }
 
 function stopRecording() {
+  async function uploadRecording() {
+  if (!audioChunks.length) {
+    document.getElementById("recordingStatus").textContent =
+      "No recording available to upload.";
+    return;
+  }
+
+  const audioBlob = new Blob(audioChunks, {
+    type: mediaRecorder.mimeType
+  });
+
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "vehicle-sound.webm");
+
+  document.getElementById("recordingStatus").textContent =
+    "Uploading recording...";
+
+  try {
+    const response = await fetch(
+      "https://roadside-intelligence-poc.onrender.com/upload-audio",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      document.getElementById("recordingStatus").textContent =
+        "Recording uploaded successfully.";
+    } else {
+      document.getElementById("recordingStatus").textContent =
+        result.error || "Upload failed.";
+    }
+
+  } catch (error) {
+    console.error(error);
+
+    document.getElementById("recordingStatus").textContent =
+      "Unable to upload recording.";
+  }
+}
+  
   if (mediaRecorder && mediaRecorder.state === "recording") {
     mediaRecorder.stop();
 
