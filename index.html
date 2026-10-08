@@ -118,9 +118,39 @@
       Send Roadside Request
     </button>
 
-    <div id="result"></div>
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #ddd;">
 
-  </div>
+      <h2>Vehicle Sound</h2>
+
+      <p>
+        If the vehicle can safely be started, you may record a short sound sample.
+      </p>
+
+      <button type="button" onclick="startRecording()">
+        Record Vehicle Sound
+      </button>
+
+      <button
+        type="button"
+        onclick="stopRecording()"
+        style="background: #777;"
+      >
+        Stop Recording
+      </button>
+
+      <p id="recordingStatus"></p>
+
+      <audio
+        id="audioPlayback"
+        controls
+        style="width: 100%; display: none;"
+      ></audio>
+
+    </div>
+
+    <div id="result"></div>
+    
+   </div>
 
   <script>
 
