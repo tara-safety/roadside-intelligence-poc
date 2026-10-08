@@ -214,24 +214,80 @@ sendJson(res, 200, {
     return;
   }
 
-  // Play back the latest saved vehicle recording
-if (req.method === "GET" && req.url === "/latest-audio") {
+ 
+  // Receive and temporarily save vehicle sound recording
+  if (req.method === "POST" && req.url === "/upload-audio") {
 
-  if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
-    sendJson(res, 404, {
-      error: "No saved recording is available."
+    const audioData = [];
+
+    req.on("data", chunk => {
+      audioData.push(chunk);
     });
+
+    req.on("end", () => {
+      try {
+        const audioBuffer = Buffer.concat(audioData);
+
+        if (audioBuffer.length === 0) {
+          sendJson(res, 400, {
+            received: false,
+            error: "The uploaded recording was empty."
+          });
+          return;
+        }
+
+        const contentType = (
+          req.headers["content-type"] || ""
+        ).split(";")[0].toLowerCase();
+
+        const audioFormats = {
+          "audio/webm": "webm",
+          "audio/mp4": "m4a",
+          "audio/ogg": "ogg",
+          "audio/wav": "wav",
+          "audio/mpeg": "mp3"
+        };
+
+        const extension = audioFormats[contentType] || "bin";
+
+        const filePath = path.join(
+          "/tmp",
+          `vehicle-sound-${Date.now()}.${extension}`
+        );
+
+        fs.writeFileSync(filePath, audioBuffer);
+
+        latestAudioFile = filePath;
+        latestAudioContentType = contentType || "application/octet-stream";
+
+        console.log(
+          `Vehicle sound saved: ${audioBuffer.length} bytes; format: ${latestAudioContentType}`
+        );
+
+        sendJson(res, 200, {
+          received: true,
+          saved: true,
+          message: "Vehicle sound temporarily saved",
+          size_bytes: audioBuffer.length,
+          content_type: latestAudioContentType
+        });
+
+      } catch (error) {
+        console.error("Audio save failed:", error);
+
+        sendJson(res, 500, {
+          received: false,
+          error: "Unable to save the audio recording."
+        });
+      }
+    });
+
+    req.on("error", error => {
+      console.error("Audio upload failed:", error);
+    });
+
     return;
   }
-
-  res.writeHead(200, {
-    "Content-Type": "audio/webm",
-    "Content-Disposition": "inline; filename=vehicle-sound.webm"
-  });
-
-  fs.createReadStream(latestAudioFile).pipe(res);
-  return;
-}
   
   // Unknown route
   sendJson(res, 404, {
