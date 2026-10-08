@@ -212,6 +212,25 @@ sendJson(res, 200, {
 
     return;
   }
+
+  // Play back the latest saved vehicle recording
+if (req.method === "GET" && req.url === "/latest-audio") {
+
+  if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
+    sendJson(res, 404, {
+      error: "No saved recording is available."
+    });
+    return;
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "audio/webm",
+    "Content-Disposition": "inline; filename=vehicle-sound.webm"
+  });
+
+  fs.createReadStream(latestAudioFile).pipe(res);
+  return;
+}
   
   // Unknown route
   sendJson(res, 404, {
