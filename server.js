@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = process.env.PORT || 3000;
+let latestAudioFile = null;
 
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
