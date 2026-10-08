@@ -183,6 +183,8 @@ sendJson(res, 200, {
 
         fs.writeFileSync(filePath, audioBuffer);
 
+        latestAudioFile = filePath;
+        
         console.log(
           `Vehicle sound saved: ${audioBuffer.length} bytes`
         );
