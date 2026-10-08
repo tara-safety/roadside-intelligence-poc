@@ -234,6 +234,7 @@ async function uploadRecording() {
   const formData = new FormData();
   formData.append("audio", audioBlob, "vehicle-sound.webm");
 
+  
   document.getElementById("recordingStatus").textContent =
     "Uploading recording...";
 
@@ -242,7 +243,10 @@ async function uploadRecording() {
       "https://roadside-intelligence-poc.onrender.com/upload-audio",
       {
         method: "POST",
-        body: formData
+        headers: {
+          "Content-Type": audioBlob.type || "application/octet-stream"
+        },
+        body: audioBlob
       }
     );
 
