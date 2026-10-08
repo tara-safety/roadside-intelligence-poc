@@ -288,7 +288,29 @@ sendJson(res, 200, {
 
     return;
   }
+
   
+      // Play back the latest saved vehicle recording
+      if (req.method === "GET" && req.url === "/latest-audio") {
+
+        if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
+          sendJson(res, 404, {
+            error: "No saved recording is available."
+          });
+          return;
+        }
+
+        const extension = path.extname(latestAudioFile);
+
+        res.writeHead(200, {
+          "Content-Type": latestAudioContentType || "application/octet-stream",
+          "Content-Disposition": `inline; filename=vehicle-sound${extension}`,
+          "Content-Length": fs.statSync(latestAudioFile).size
+        });
+
+        fs.createReadStream(latestAudioFile).pipe(res);
+        return;
+      }
   // Unknown route
   sendJson(res, 404, {
     error: "Route not found"
