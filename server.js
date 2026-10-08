@@ -155,66 +155,6 @@ sendJson(res, 200, {
     return;
   }
 
-  
-  // Receive and temporarily save vehicle sound recording
-  if (req.method === "POST" && req.url === "/upload-audio") {
-
-    const audioData = [];
-
-    req.on("data", chunk => {
-      audioData.push(chunk);
-    });
-
-    req.on("end", () => {
-      try {
-        const audioBuffer = Buffer.concat(audioData);
-
-        if (audioBuffer.length === 0) {
-          sendJson(res, 400, {
-            received: false,
-            error: "The uploaded recording was empty."
-          });
-          return;
-        }
-
-        const filePath = path.join(
-          "/tmp",
-          `vehicle-sound-${Date.now()}.webm`
-        );
-
-        fs.writeFileSync(filePath, audioBuffer);
-
-        latestAudioFile = filePath;
-        
-        console.log(
-          `Vehicle sound saved: ${audioBuffer.length} bytes`
-        );
-
-        sendJson(res, 200, {
-          received: true,
-          saved: true,
-          message: "Vehicle sound temporarily saved",
-          size_bytes: audioBuffer.length
-        });
-
-      } catch (error) {
-        console.error("Audio save failed:", error);
-
-        sendJson(res, 500, {
-          received: false,
-          error: "Unable to save the audio recording."
-        });
-      }
-    });
-
-    req.on("error", error => {
-      console.error("Audio upload failed:", error);
-    });
-
-    return;
-  }
-
- 
   // Receive and temporarily save vehicle sound recording
   if (req.method === "POST" && req.url === "/upload-audio") {
 
