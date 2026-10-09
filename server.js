@@ -99,7 +99,17 @@ function readRequestBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
+  // Allow browser-based tools to test the plugin
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+  
   // Roadside assistance webpage
   if (req.method === "GET" && req.url === "/") {
     fs.readFile("index.html", "utf8", (error, html) => {
