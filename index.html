@@ -319,6 +319,26 @@ async function uploadRecording() {
       }
     }
 
+   
+window.addEventListener("load", async () => {
+  const audioPlayback = document.getElementById("audioPlayback");
+  if (!audioPlayback) return;
+
+  try {
+    const response = await fetch(
+      "https://roadside-intelligence-poc.onrender.com/latest-audio"
+    );
+
+    if (response.ok) {
+      const audioBlob = await response.blob();
+      audioPlayback.src = URL.createObjectURL(audioBlob);
+      audioPlayback.style.display = "block";
+    }
+  } catch (error) {
+    console.log("No saved recording available yet.");
+  }
+});
+    
   </script>
 
 </body>
