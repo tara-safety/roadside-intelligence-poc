@@ -609,6 +609,150 @@ const server = http.createServer(async (req, res) => {
         fs.createReadStream(latestAudioFile).pipe(res);
         return;
       }
+
+  // Protected internal vehicle sound analysis endpoint
+  if (
+    req.method === "POST" &&
+    req.url === "/api/internal/analyze-audio"
+  ) {
+    if (!isAuthorizedInternalRequest(req)) {
+      sendJson(res, 401, {
+        received: false,
+        error: "Unauthorized"
+      });
+      return;
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      sendJson(res, 500, {
+        received: false,
+        error: "Audio analysis is not configured."
+      });
+      return;
+    }
+
+    if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
+      sendJson(res, 404, {
+        received: false,
+        error: "No saved vehicle recording is available."
+      });
+      return;
+    }
+
+    let wavFile = null;
+
+    try {
+      const originalSize = fs.statSync(latestAudioFile).size;
+
+      if (originalSize > 8 * 1024 * 1024) {
+        sendJson(res, 413, {
+          received: false,
+          error: "The recording is too large for this test."
+        });
+        return;
+      }
+
+      wavFile = await convertAudioToWav(latestAudioFile);
+
+      const wavSize = fs.statSync(wavFile).size;
+
+      if (wavSize > 10 * 1024 * 1024) {
+        sendJson(res, 413, {
+          received: false,
+          error: "The converted recording is too large for this test."
+        });
+        return;
+      }
+
+      const audioBase64 = fs
+        .readFileSync(wavFile)
+        .toString("base64");
+
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-audio-1.5",
+        modalities: ["text"],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: [
+                  "You are assisting with a roadside vehicle assessment.",
+                  "Describe only the sounds you can reasonably hear.",
+                  "Identify audible patterns such as rapid clicking,",
+                  "a single click, engine cranking, unusual knocking,",
+                  "or no clearly identifiable vehicle sound.",
+                  "Separate direct observations from possibilities.",
+                  "Do not claim to confirm a mechanical diagnosis.",
+                  "Do not recommend a dispatch resource based on sound alone.",
+                  "If the recording is unclear, noisy, or inconclusive,",
+                  "say so explicitly.",
+                  "Keep the response concise and factual."
+                ].join(" ")
+              },
+              {
+                type: "input_audio",
+                input_audio: {
+                  data: audioBase64,
+                  format: "wav"
+                }
+              }
+            ]
+          }
+        ],
+        max_completion_tokens: 300
+      });
+
+      const analysis = response.choices?.[0]?.message?.content;
+
+      if (!analysis || typeof analysis !== "string") {
+        sendJson(res, 502, {
+          received: false,
+          error: "The audio model returned no usable description."
+        });
+        return;
+      }
+
+      console.log("Vehicle audio analysis completed.");
+
+      sendJson(res, 200, {
+        received: true,
+        analysis_type: "vehicle_sound_observation",
+        model: "gpt-audio-1.5",
+        audio_observations: analysis,
+        diagnosis_confirmed: false,
+        dispatch_decision_made: false
+      });
+
+    } catch (error) {
+      console.error(
+        "Vehicle audio analysis failed:",
+        error.message
+      );
+
+      sendJson(res, 500, {
+        received: false,
+        error: "Unable to analyze the recording at this time."
+      });
+
+    } finally {
+      if (wavFile && fs.existsSync(wavFile)) {
+        try {
+          fs.unlinkSync(wavFile);
+        } catch (cleanupError) {
+          console.error("Temporary audio cleanup failed.");
+        }
+      }
+    }
+
+    return;
+  }
+  
   // Unknown route
   sendJson(res, 404, {
     error: "Route not found"
