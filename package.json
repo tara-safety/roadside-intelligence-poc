@@ -1,19 +1,22 @@
 {
-  "name": "roadside-intelligence-poc",
-  "version": "0.1.0",
-  "description": "Pre-dispatch roadside intelligence proof of concept",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
-  },
-  "keywords": [
-    "roadside",
-    "dispatch",
-    "vehicle",
-    "sound-analysis",
-    "ai"
-  ],
-  "author": "Troy Paul",
-  "license": "UNLICENSED"
+"name": "roadside-intelligence-poc",
+"version": "0.1.0",
+"description": "Pre-dispatch roadside intelligence proof of concept",
+"main": "server.js",
+"scripts": {
+"start": "node server.js",
+"dev": "node server.js"
+},
+"keywords": [
+"roadside",
+"dispatch",
+"vehicle",
+"sound-analysis",
+"ai"
+],
+"author": "Troy Paul",
+"license": "UNLICENSED",
+"dependencies": {
+"ffmpeg-static": "^5.2.0"
+}
 }
