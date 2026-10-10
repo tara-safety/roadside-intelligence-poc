@@ -37,7 +37,12 @@ function recommendResource(request) {
   const problem = (request.problem || "").toLowerCase();
   const service = (request.service_requested || "").toLowerCase();
 
-  // Safety screening must happen before resource recommendations
+  // --------------------------------------------------
+  // 1. SAFETY SCREENING
+  // Safety concerns must be reviewed before selecting
+  // a roadside resource.
+  // --------------------------------------------------
+
   const urgentSafetyTerms = [
     "fire",
     "smoke",
@@ -47,7 +52,11 @@ function recommendResource(request) {
     "crash",
     "trapped",
     "fuel leak",
-    "gas leak"
+    "gas leak",
+    "in a live lane",
+    "blocking traffic",
+    "unsafe location",
+    "dangerous location"
   ];
 
   const safetyConcern = urgentSafetyTerms.some(term =>
@@ -59,70 +68,306 @@ function recommendResource(request) {
       recommended_resource: "Urgent Human Review",
       primary_capability: "Safety Assessment",
       priority: "Urgent",
-      confidence: "High",
-      reason: "The reported information contains a potential safety concern. Human assessment is required before selecting a roadside resource.",
+      reason: "The reported information contains a potential safety concern. A human assessment is required before selecting a roadside resource.",
       additional_information_needed: true,
       automated_resource_selection: false
     };
   }
-  
-  // No-start / battery-related situation
+
+  // --------------------------------------------------
+  // 2. BATTERY WARNING WHILE DRIVING, THEN VEHICLE DIES
+  // A charging-system problem may require a tow.
+  // Do not assume the alternator is definitively at fault.
+  // --------------------------------------------------
+
+  const batteryWarning =
+    problem.includes("battery warning light") ||
+    problem.includes("battery light came on") ||
+    problem.includes("charging system warning");
+
+  const vehicleDied =
+    problem.includes("died while driving") ||
+    problem.includes("died while moving") ||
+    problem.includes("shut off while driving") ||
+    problem.includes("engine died while driving");
+
+  if (batteryWarning && vehicleDied) {
+    return {
+      recommended_resource: "Tow Vehicle",
+      primary_capability: "Vehicle Transport / Charging System Assessment",
+      reason: "The vehicle reportedly lost power after a charging-system warning. A tow assessment is recommended rather than assuming a boost or battery replacement will resolve the problem.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 3. FLAT TIRE WITH MISSING LOCKING WHEEL-NUT KEY
+  // Based on the reported equipment limitation:
+  // a light service vehicle may not be able to change
+  // this tire without the required key.
+  // --------------------------------------------------
+
+  const flatTire =
+    service === "flat_tire" ||
+    problem.includes("flat tire") ||
+    problem.includes("flat tyre") ||
+    problem.includes("punctured tire") ||
+    problem.includes("punctured tyre");
+
+  const missingWheelLockKey =
+    problem.includes("missing wheel lock key") ||
+    problem.includes("missing locking wheel nut key") ||
+    problem.includes("no wheel lock key") ||
+    problem.includes("no locking wheel nut key") ||
+    problem.includes("wheel lock key is missing");
+
+  if (flatTire && missingWheelLockKey) {
+    return {
+      recommended_resource: "Tow Vehicle",
+      primary_capability: "Vehicle Transport / Tire Service Limitation",
+      reason: "The reported flat tire requires a locking wheel-nut key that is unavailable. A tow is recommended because the required roadside tire service may not be possible with the available equipment.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 4. FLAT TIRE WITHOUT A CONFIRMED USABLE SPARE
+  // Do not assume the vehicle carries a spare tire.
+  // --------------------------------------------------
+
+  const noSpare =
+    problem.includes("no spare") ||
+    problem.includes("does not have a spare") ||
+    problem.includes("doesn't have a spare") ||
+    problem.includes("spare tire is missing") ||
+    problem.includes("spare tyre is missing") ||
+    problem.includes("spare is unusable");
+
+  if (flatTire && noSpare) {
+    return {
+      recommended_resource: "Tow Vehicle",
+      primary_capability: "Vehicle Transport / Tire Assessment",
+      reason: "A usable spare tire has not been confirmed. A tow assessment is recommended to determine the appropriate way to transport the vehicle.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 5. SINGLE CLICK WITH HEADLIGHTS REMAINING BRIGHT
+  // This may indicate a starter or starting-circuit issue.
+  // It is not a confirmed diagnosis.
+  // --------------------------------------------------
+
+  const singleClick =
+    problem.includes("single click") ||
+    problem.includes("one click") ||
+    problem.includes("clicks once");
+
+  const lightsStayBright =
+    problem.includes("headlights stay bright") ||
+    problem.includes("headlights remain bright") ||
+    problem.includes("lights do not dim") ||
+    problem.includes("lights don't dim") ||
+    problem.includes("headlights do not dim") ||
+    problem.includes("headlights don't dim");
+
+  if (singleClick && lightsStayBright) {
+    return {
+      recommended_resource: "Tow Vehicle",
+      primary_capability: "Starting System Assessment / Vehicle Transport",
+      reason: "A single click with lights reportedly remaining bright may indicate a starter or starting-circuit fault. A tow assessment is recommended based on the reported symptoms.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 6. NO-START WITH RAPID CLICKING OR FLASHING DASH
+  // A weak battery or electrical connection may be involved.
+  // A light service vehicle may be appropriate.
+  // --------------------------------------------------
+
+  const rapidClicking =
+    problem.includes("rapid clicking") ||
+    problem.includes("clicking rapidly") ||
+    problem.includes("clicking noise");
+
+  const flashingDash =
+    problem.includes("flashing dash lights") ||
+    problem.includes("dashboard lights flashing") ||
+    problem.includes("dash lights flashing");
+
+  if (rapidClicking || flashingDash) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Battery / Electrical Starting System",
+      reason: "Reported clicking or flashing dashboard lights may indicate a battery or electrical starting-system issue that could be assessed roadside.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 7. KEY FOB NOT RECOGNIZED
+  // Vehicle-specific instructions may be required.
+  // Do not assume the same procedure works for every vehicle.
+  // --------------------------------------------------
+
   if (
+    problem.includes("key fob not recognized") ||
+    problem.includes("key fob not detected") ||
+    problem.includes("key not detected") ||
+    problem.includes("key not recognized")
+  ) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Vehicle Starting / Key Recognition Assessment",
+      reason: "The vehicle reportedly does not recognize its key. Vehicle-specific starting instructions or roadside assessment may be required.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 8. KEY WILL NOT TURN
+  // A steering-wheel lock is one possible explanation.
+  // Do not force the key or steering wheel.
+  // --------------------------------------------------
+
+  if (
+    problem.includes("key will not turn") ||
+    problem.includes("key won't turn") ||
+    problem.includes("key will not rotate")
+  ) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Ignition / Steering Lock Assessment",
+      reason: "The key reportedly will not turn. A steering-wheel lock or another ignition-related issue may be involved; vehicle-specific guidance or roadside assessment may be required.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 9. VEHICLE WILL NOT START WITH NO SOUND
+  // A battery, electrical, starting-system, or interlock
+  // issue may be involved.
+  // --------------------------------------------------
+
+  const noStart =
     problem.includes("won't start") ||
     problem.includes("will not start") ||
+    problem.includes("will not crank") ||
+    problem.includes("won't crank") ||
+    problem.includes("does not start") ||
+    problem.includes("doesn't start");
+
+  const noSound =
+    problem.includes("no noise at all") ||
+    problem.includes("no sound at all") ||
+    problem.includes("nothing happens when i start") ||
+    problem.includes("nothing happens when starting");
+
+  if (noStart && noSound) {
+    return {
+      recommended_resource: "Light Service Vehicle",
+      primary_capability: "Battery / Electrical Starting System",
+      reason: "The vehicle reportedly will not start and makes no sound. A roadside assessment may help identify a battery, electrical, starting-system, or starting-interlock issue.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+
+  // --------------------------------------------------
+  // 10. GENERAL NO-START / BATTERY-RELATED SITUATION
+  // --------------------------------------------------
+
+  if (
+    noStart ||
     problem.includes("dead battery") ||
-    problem.includes("battery")
+    problem.includes("battery problem") ||
+    problem.includes("battery issue")
   ) {
     return {
       recommended_resource: "Light Service Vehicle",
       primary_capability: "Battery / Starting System",
-      reason: "Reported no-start condition may be serviceable without a tow."
+      reason: "The reported no-start or battery-related condition may be serviceable roadside. Further assessment is required before confirming the fault.",
+      additional_information_needed: true,
+      automated_resource_selection: false
     };
   }
 
-  // Flat tire
-  if (
-    service === "flat_tire" ||
-    problem.includes("flat tire")
-  ) {
+  // --------------------------------------------------
+  // 11. FLAT TIRE
+  // Further questions may be needed about the spare,
+  // wheel-lock key, equipment, and roadside safety.
+  // --------------------------------------------------
+
+  if (flatTire) {
     return {
       recommended_resource: "Light Service Vehicle",
       primary_capability: "Tire Service",
-      reason: "Reported tire issue may be handled roadside."
+      reason: "The reported tire issue may be handled roadside, subject to spare-tire availability, required equipment, and a safety assessment of the location.",
+      additional_information_needed: true,
+      automated_resource_selection: false
     };
   }
 
-  // Lockout
+  // --------------------------------------------------
+  // 12. VEHICLE LOCKOUT
+  // --------------------------------------------------
+
   if (
     service === "lockout" ||
-    problem.includes("locked") ||
-    problem.includes("keys")
+    problem.includes("locked out") ||
+    problem.includes("keys locked inside") ||
+    problem.includes("keys locked in the vehicle")
   ) {
     return {
       recommended_resource: "Light Service Vehicle",
       primary_capability: "Vehicle Lockout",
-      reason: "Reported lockout condition may be handled roadside."
+      reason: "The reported lockout condition may be handled roadside, depending on the vehicle and available equipment.",
+      additional_information_needed: true,
+      automated_resource_selection: false
     };
   }
 
-  // Fuel
+  // --------------------------------------------------
+  // 13. FUEL DELIVERY
+  // --------------------------------------------------
+
   if (
     service === "fuel" ||
     problem.includes("out of fuel") ||
-    problem.includes("out of gas")
+    problem.includes("out of gas") ||
+    problem.includes("ran out of fuel") ||
+    problem.includes("ran out of gas")
   ) {
     return {
       recommended_resource: "Light Service Vehicle",
       primary_capability: "Fuel Delivery",
-      reason: "Reported fuel issue may be handled roadside."
+      reason: "The reported fuel issue may be handled roadside, subject to vehicle requirements and a safety assessment.",
+      additional_information_needed: true,
+      automated_resource_selection: false
     };
   }
 
-  // Default
+  // --------------------------------------------------
+  // 14. DEFAULT
+  // Unknown situations should not be treated as confirmed
+  // tow requirements. A tow assessment is the initial
+  // recommendation, with human review as needed.
+  // --------------------------------------------------
+
   return {
     recommended_resource: "Tow Vehicle",
-    primary_capability: "Vehicle Transport",
-    reason: "Available information indicates a tow assessment is appropriate."
+    primary_capability: "Vehicle Transport Assessment",
+    reason: "The available information is insufficient to identify a suitable roadside repair. A tow assessment is recommended, with further information or human review as needed.",
+    additional_information_needed: true,
+    automated_resource_selection: false
   };
 }
 
