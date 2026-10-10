@@ -305,10 +305,15 @@ async function uploadRecording() {
           }
         );
 
-        const data = await response.json();
+       const data = await response.json();
 
-        result.textContent =
-          JSON.stringify(data, null, 2);
+if (response.ok && data.received) {
+result.textContent =
+"Your roadside assistance request has been received. The information is being reviewed to help determine the appropriate assistance.";
+} else {
+result.textContent =
+"We were unable to submit your request. Please try again.";
+}
 
       } catch (error) {
 
