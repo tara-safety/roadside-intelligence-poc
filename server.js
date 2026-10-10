@@ -5,9 +5,9 @@ const crypto = require("crypto");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 const ffmpegPath = require("ffmpeg-static");
+const OpenAI = require("openai");
 
 const execFileAsync = promisify(execFile);
-
 async function convertAudioToWav(inputFile) {
   const outputFile = path.join(
     "/tmp",
