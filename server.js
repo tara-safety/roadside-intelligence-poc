@@ -37,6 +37,35 @@ function recommendResource(request) {
   const problem = (request.problem || "").toLowerCase();
   const service = (request.service_requested || "").toLowerCase();
 
+  // Safety screening must happen before resource recommendations
+  const urgentSafetyTerms = [
+    "fire",
+    "smoke",
+    "injured",
+    "injury",
+    "collision",
+    "crash",
+    "trapped",
+    "fuel leak",
+    "gas leak"
+  ];
+
+  const safetyConcern = urgentSafetyTerms.some(term =>
+    problem.includes(term)
+  );
+
+  if (safetyConcern) {
+    return {
+      recommended_resource: "Urgent Human Review",
+      primary_capability: "Safety Assessment",
+      priority: "Urgent",
+      confidence: "High",
+      reason: "The reported information contains a potential safety concern. Human assessment is required before selecting a roadside resource.",
+      additional_information_needed: true,
+      automated_resource_selection: false
+    };
+  }
+  
   // No-start / battery-related situation
   if (
     problem.includes("won't start") ||
