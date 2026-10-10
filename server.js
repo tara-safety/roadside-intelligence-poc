@@ -15,6 +15,24 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data, null, 2));
 }
 
+function isAuthorizedInternalRequest(req) {
+  const expectedKey = process.env.ROADSIDE_INTELLIGENCE_API_KEY;
+  const suppliedKey = req.headers["x-api-key"];
+
+  if (!expectedKey || typeof suppliedKey !== "string") {
+    return false;
+  }
+
+  const expected = Buffer.from(expectedKey, "utf8");
+  const supplied = Buffer.from(suppliedKey, "utf8");
+
+  if (expected.length !== supplied.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expected, supplied);
+}
+
 function recommendResource(request) {
   const problem = (request.problem || "").toLowerCase();
   const service = (request.service_requested || "").toLowerCase();
@@ -103,7 +121,7 @@ const server = http.createServer(async (req, res) => {
   // Allow browser-based tools to test the plugin
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key");
 
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -140,23 +158,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Mock roadside assistance request
-  if (req.method === "POST" && req.url === "/roadside-request") {
+    // Protected internal roadside intelligence endpoint
+  if (
+    req.method === "POST" &&
+    req.url === "/api/internal/roadside-request"
+  ) {
+    if (!isAuthorizedInternalRequest(req)) {
+      sendJson(res, 401, {
+        received: false,
+        error: "Unauthorized"
+      });
+      return;
+    }
+
     try {
-
       const requestData = await readRequestBody(req);
-
       const recommendation = recommendResource(requestData);
 
-sendJson(res, 200, {
-  received: true,
-  message: "Roadside request received",
-  request: requestData,
-  pre_dispatch_recommendation: recommendation
-});
+      sendJson(res, 200, {
+        received: true,
+        message: "Internal roadside assessment completed",
+        request: requestData,
+        pre_dispatch_recommendation: recommendation
+      });
 
     } catch (error) {
-
       sendJson(res, 400, {
         received: false,
         error: "Invalid JSON request"
@@ -166,6 +192,29 @@ sendJson(res, 200, {
     return;
   }
 
+  // Customer-facing roadside request endpoint
+  if (
+    req.method === "POST" &&
+    req.url === "/roadside-request"
+  ) {
+    try {
+      await readRequestBody(req);
+
+      sendJson(res, 200, {
+        received: true,
+        message: "Roadside request received"
+      });
+
+    } catch (error) {
+      sendJson(res, 400, {
+        received: false,
+        error: "Invalid JSON request"
+      });
+    }
+
+    return;
+  }
+  
   // Receive and temporarily save vehicle sound recording
   if (req.method === "POST" && req.url === "/upload-audio") {
 
