@@ -17,6 +17,7 @@
 "author": "Troy Paul",
 "license": "UNLICENSED",
 "dependencies": {
-"ffmpeg-static": "^5.2.0"
+  "ffmpeg-static": "^5.2.0",
+  "openai": "^5.0.0"
 }
 }
