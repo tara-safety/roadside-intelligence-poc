@@ -2,6 +2,30 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const ffmpegPath = require("ffmpeg-static");
+
+const execFileAsync = promisify(execFile);
+
+async function convertAudioToWav(inputFile) {
+  const outputFile = path.join(
+    "/tmp",
+    `vehicle-sound-${Date.now()}.wav`
+  );
+
+  await execFileAsync(ffmpegPath, [
+    "-y",
+    "-i", inputFile,
+    "-vn",
+    "-ac", "1",
+    "-ar", "16000",
+    "-c:a", "pcm_s16le",
+    outputFile
+  ]);
+
+  return outputFile;
+}
 
 const PORT = process.env.PORT || 3000;
 let latestAudioFile = null;
