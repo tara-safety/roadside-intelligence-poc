@@ -8,6 +8,8 @@ const ffmpegPath = require("ffmpeg-static");
 const OpenAI = require("openai");
 
 const execFileAsync = promisify(execFile);
+console.log("OpenAI API key available:", Boolean(process.env.OPENAI_API_KEY));
+
 async function convertAudioToWav(inputFile) {
   const outputFile = path.join(
     "/tmp",
