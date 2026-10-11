@@ -674,13 +674,9 @@ const server = http.createServer(async (req, res) => {
         apiKey: process.env.OPENAI_API_KEY
       });
 
-           const response = await openai.chat.completions.create({
+            const response = await openai.chat.completions.create({
         model: "gpt-audio-1.5",
-        modalities: ["text", "audio"],
-        audio: {
-          voice: "alloy",
-          format: "wav"
-        },
+        modalities: ["text"],
         messages: [
           {
             role: "user",
@@ -713,7 +709,7 @@ const server = http.createServer(async (req, res) => {
         ],
         max_completion_tokens: 300
       });
-
+      
       const analysis = response.choices?.[0]?.message?.content;
       
       console.log(
