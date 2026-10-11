@@ -710,13 +710,10 @@ const server = http.createServer(async (req, res) => {
         max_completion_tokens: 300
       });
       
-      const analysis = response.choices?.[0]?.message?.content;
-      
-      console.log(
-  "Audio model response structure:",
-  JSON.stringify(response.choices?.[0]?.message).slice(0, 2000)
-);
-      
+          const analysis = response.choices?.[0]?.message?.content;
+
+      console.log("Vehicle audio analysis completed.");
+
       if (!analysis || typeof analysis !== "string") {
         sendJson(res, 502, {
           received: false,
@@ -725,16 +722,42 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      console.log("Vehicle audio analysis completed.");
+      let structuredAnalysis;
+
+      try {
+        structuredAnalysis = JSON.parse(analysis);
+      } catch (parseError) {
+        console.error("Audio analysis was not valid JSON.");
+
+        sendJson(res, 502, {
+          received: false,
+          error: "The audio model returned an unexpected response format."
+        });
+        return;
+      }
+
+      if (
+        !structuredAnalysis ||
+        typeof structuredAnalysis !== "object" ||
+        Array.isArray(structuredAnalysis) ||
+        typeof structuredAnalysis.observations !== "string" ||
+        typeof structuredAnalysis.possibilities !== "string"
+      ) {
+        sendJson(res, 502, {
+          received: false,
+          error: "The audio analysis did not contain the expected fields."
+        });
+        return;
+      }
 
       sendJson(res, 200, {
         received: true,
         analysis_type: "vehicle_sound_observation",
         model: "gpt-audio-1.5",
-        audio_observations: analysis,
+        audio_observations: structuredAnalysis,
         diagnosis_confirmed: false,
         dispatch_decision_made: false
-      });
+      });  
 
     } catch (error) {
       console.error(
