@@ -715,7 +715,12 @@ const server = http.createServer(async (req, res) => {
       });
 
       const analysis = response.choices?.[0]?.message?.content;
-
+      
+      console.log(
+  "Audio model response structure:",
+  JSON.stringify(response.choices?.[0]?.message).slice(0, 2000)
+);
+      
       if (!analysis || typeof analysis !== "string") {
         sendJson(res, 502, {
           received: false,
