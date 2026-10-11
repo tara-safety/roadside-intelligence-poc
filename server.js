@@ -107,6 +107,16 @@ function recommendResource(request) {
   }
 
   // --------------------------------------------------
+  // AUDIO OBSERVATIONS
+  // Audio can provide supporting evidence, but it cannot
+  // confirm a mechanical fault or select a resource alone.
+  // --------------------------------------------------
+
+  if (hasAudioAnalysis) {
+    console.log("Analyzed vehicle audio observations are available.");
+  }
+  
+  // --------------------------------------------------
   // 2. BATTERY WARNING WHILE DRIVING, THEN VEHICLE DIES
   // A charging-system problem may require a tow.
   // Do not assume the alternator is definitively at fault.
