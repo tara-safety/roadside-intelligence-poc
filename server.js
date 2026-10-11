@@ -63,6 +63,12 @@ function recommendResource(request) {
   const problem = (request.problem || "").toLowerCase();
   const service = (request.service_requested || "").toLowerCase();
 
+  const audioObservations = request.audio_observations;
+  const hasAudioAnalysis =
+    audioObservations &&
+    typeof audioObservations.observations === "string" &&
+    typeof audioObservations.possibilities === "string";
+  
   // --------------------------------------------------
   // 1. SAFETY SCREENING
   // Safety concerns must be reviewed before selecting
