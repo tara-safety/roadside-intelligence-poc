@@ -60,7 +60,14 @@ function isAuthorizedInternalRequest(req) {
 }
 
 function recommendResource(request) {
-  const problem = (request.problem || "").toLowerCase();
+  const problem = (
+  (request.problem || "") +
+  " " +
+  (request.audio_observations?.observations || "") +
+  " " +
+  (request.audio_observations?.possibilities || "")
+).toLowerCase();
+  
   const service = (request.service_requested || "").toLowerCase();
 
   const audioObservations = request.audio_observations;
