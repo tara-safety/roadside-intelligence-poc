@@ -104,8 +104,8 @@ function recommendResource(request) {
       additional_information_needed: true,
       automated_resource_selection: false
     };
-  }
-
+  
+}
     // --------------------------------------------------
   // AUDIO OBSERVATIONS
   // Audio can support the assessment, but it cannot
@@ -146,7 +146,7 @@ function recommendResource(request) {
       recommended_resource: "Tow Vehicle",
       primary_capability: "Vehicle Transport / Charging System Assessment",
       reason: "The vehicle reportedly lost power after a charging-system warning. A tow assessment is recommended rather than assuming a boost or battery replacement will resolve the problem.",
-      additional_information_needed: true,
+audio_assessment_note: audioAssessmentNote || null,
       automated_resource_selection: false
     };
   }
@@ -511,12 +511,13 @@ const assessmentRequest = {
 
 const recommendation = recommendResource(assessmentRequest);
 
-      sendJson(res, 200, {
-        received: true,
-        message: "Internal roadside assessment completed",
-        request: requestData,
-        pre_dispatch_recommendation: recommendation
-      });
+  sendJson(res, 200, {
+  received: true,
+  message: "Internal roadside assessment completed",
+  request: requestData,
+  audio_assessment_note: recommendation.audio_assessment_note || null,
+  pre_dispatch_recommendation: recommendation
+});    
 
     } catch (error) {
       sendJson(res, 400, {
