@@ -489,7 +489,19 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const requestData = await readRequestBody(req);
-      const recommendation = recommendResource(requestData);
+      const audioObservations =
+  requestData.audio_observations &&
+  typeof requestData.audio_observations.observations === "string" &&
+  typeof requestData.audio_observations.possibilities === "string"
+    ? requestData.audio_observations
+    : null;
+
+const assessmentRequest = {
+  ...requestData,
+  audio_observations: audioObservations
+};
+
+const recommendation = recommendResource(assessmentRequest);
 
       sendJson(res, 200, {
         received: true,
