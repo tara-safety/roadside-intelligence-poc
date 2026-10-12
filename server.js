@@ -106,14 +106,22 @@ function recommendResource(request) {
     };
   }
 
-  // --------------------------------------------------
+    // --------------------------------------------------
   // AUDIO OBSERVATIONS
-  // Audio can provide supporting evidence, but it cannot
+  // Audio can support the assessment, but it cannot
   // confirm a mechanical fault or select a resource alone.
   // --------------------------------------------------
 
+  let audioAssessmentNote = "";
+
   if (hasAudioAnalysis) {
-    console.log("Analyzed vehicle audio observations are available.");
+    audioAssessmentNote =
+      " Vehicle sound observations: " +
+      audioObservations.observations +
+      " Possible explanations (unconfirmed): " +
+      audioObservations.possibilities;
+
+    console.log("Vehicle sound observations added to assessment.");
   }
   
   // --------------------------------------------------
