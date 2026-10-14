@@ -59,7 +59,7 @@ function isAuthorizedInternalRequest(req) {
   return crypto.timingSafeEqual(expected, supplied);
 }
 
-function recommendResource(request) {
+function recommendResourceCore(request) {
   const problem = (request.problem || "").toLowerCase();
   const service = (request.service_requested || "").toLowerCase();
 
@@ -419,6 +419,34 @@ audio_assessment_note: audioAssessmentNote || null,
     additional_information_needed: true,
     automated_resource_selection: false
   };
+}
+
+function recommendResource(request) {
+const recommendation = recommendResourceCore(request);
+
+// Keep urgent safety recommendations unchanged.
+if (recommendation.recommended_resource === "Urgent Human Review") {
+return recommendation;
+}
+
+const audioObservations = request.audio_observations;
+
+const hasAudioAnalysis =
+audioObservations &&
+typeof audioObservations.observations === "string" &&
+typeof audioObservations.possibilities === "string";
+
+const audioAssessmentNote = hasAudioAnalysis
+? "Vehicle sound observations: " +
+audioObservations.observations +
+" Possible explanations (unconfirmed): " +
+audioObservations.possibilities
+: null;
+
+return {
+...recommendation,
+audio_assessment_note: audioAssessmentNote
+};
 }
 
 function readRequestBody(req) {
