@@ -32,6 +32,7 @@ async function convertAudioToWav(inputFile) {
 const PORT = process.env.PORT || 3000;
 let latestAudioFile = null;
 let latestAudioContentType = "audio/webm";
+let latestAudioUploadedAt = null;
 
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
@@ -525,29 +526,36 @@ const server = http.createServer(async (req, res) => {
 
     try {
       const requestData = await readRequestBody(req);
+
       const audioObservations =
-  requestData.audio_observations &&
-  typeof requestData.audio_observations.observations === "string" &&
-  typeof requestData.audio_observations.possibilities === "string"
-    ? requestData.audio_observations
-    : null;
+        requestData.audio_observations &&
+        typeof requestData.audio_observations.observations === "string" &&
+        typeof requestData.audio_observations.possibilities === "string"
+          ? requestData.audio_observations
+          : null;
 
-const assessmentRequest = {
-  ...requestData,
-  audio_observations: audioObservations
-};
+      const assessmentRequest = {
+        ...requestData,
+        audio_observations: audioObservations
+      };
 
-const recommendation = recommendResource(assessmentRequest);
+      const recommendation = recommendResource(assessmentRequest);
 
-  sendJson(res, 200, {
-  received: true,
-  message: "Internal roadside assessment completed",
-  request: requestData,
-  audio_assessment_note: recommendation.audio_assessment_note || null,
-  pre_dispatch_recommendation: recommendation
-});    
+      sendJson(res, 200, {
+        received: true,
+        message: "Internal roadside assessment completed",
+        request: requestData,
+        audio_assessment_note:
+          recommendation.audio_assessment_note || null,
+        pre_dispatch_recommendation: recommendation
+      });
 
     } catch (error) {
+      console.error(
+        "Internal roadside assessment failed:",
+        error.message
+      );
+
       sendJson(res, 400, {
         received: false,
         error: "Invalid JSON request"
@@ -555,7 +563,7 @@ const recommendation = recommendResource(assessmentRequest);
     }
 
     return;
-  }
+  } 
 
   // Customer-facing roadside request endpoint
   if (
@@ -624,7 +632,8 @@ const recommendation = recommendResource(assessmentRequest);
 
         latestAudioFile = filePath;
         latestAudioContentType = contentType || "application/octet-stream";
-
+        latestAudioUploadedAt = Date.now();
+        
         console.log(
           `Vehicle sound saved: ${audioBuffer.length} bytes; format: ${latestAudioContentType}`
         );
