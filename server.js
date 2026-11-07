@@ -613,6 +613,52 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+// Protected internal assessment retrieval endpoint
+if (
+  req.method === "GET" &&
+  req.url.startsWith("/api/internal/roadside-assessment")
+) {
+  if (!isAuthorizedInternalRequest(req)) {
+    sendJson(res, 401, {
+      received: false,
+      error: "Unauthorized"
+    });
+    return;
+  }
+
+  const requestUrl = new URL(
+    req.url,
+    "http://localhost"
+  );
+
+  const requestId = requestUrl.searchParams.get("id");
+
+  if (!requestId) {
+    sendJson(res, 400, {
+      received: false,
+      error: "Request ID is required"
+    });
+    return;
+  }
+
+  const assessment = roadsideAssessments.get(requestId);
+
+  if (!assessment) {
+    sendJson(res, 404, {
+      received: false,
+      error: "Assessment not found"
+    });
+    return;
+  }
+
+  sendJson(res, 200, {
+    received: true,
+    internal_assessment: assessment
+  });
+
+  return;
+}
+  
     // Protected internal roadside intelligence endpoint
   if (
     req.method === "POST" &&
