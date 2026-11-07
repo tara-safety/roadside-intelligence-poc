@@ -476,25 +476,24 @@ function readRequestBody(req) {
   });
 }
 
-async function analyzeLatestAudio() {
+  async function analyzeLatestAudio(audioFile = latestAudioFile) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("Audio analysis is not configured.");
   }
 
-  if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
-    throw new Error("No saved vehicle recording is available.");
-  }
-
+  if (!audioFile || !fs.existsSync(audioFile)) {
+  throw new Error("No saved vehicle recording is available.");
+}
   let wavFile = null;
 
   try {
-    const originalSize = fs.statSync(latestAudioFile).size;
+    const originalSize = fs.statSync(audioFile) .size;
 
     if (originalSize > 8 * 1024 * 1024) {
       throw new Error("The recording is too large for this test.");
     }
 
-    wavFile = await convertAudioToWav(latestAudioFile);
+    wavFile = await convertAudioToWav(audioFile);
 
     const wavSize = fs.statSync(wavFile).size;
 
