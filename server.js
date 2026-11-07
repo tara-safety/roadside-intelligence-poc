@@ -785,7 +785,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-  ```javascript
+  
   // Protected internal vehicle sound analysis endpoint
   if (
     req.method === "POST" &&
