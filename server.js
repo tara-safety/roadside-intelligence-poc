@@ -814,11 +814,12 @@ roadsideAssessments.set(requestId, {
 
     console.log("Roadside assessment stored:", requestId);
 
-    // Customer receives confirmation only
-    sendJson(res, 200, {
-      received: true,
-      message: "Roadside request received"
-    });
+   // Customer receives confirmation and internal request reference
+sendJson(res, 200, {
+  received: true,
+  message: "Roadside request received",
+  request_id: requestId
+});
 
   } catch (error) {
     console.error(
