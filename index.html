@@ -244,8 +244,9 @@ async function uploadRecording() {
     "Uploading recording...";
 
   try {
-    const response = await fetch(
-      "https://roadside-intelligence-poc.onrender.com/upload-audio",
+   const response = await fetch(
+  "https://roadside-intelligence-poc.onrender.com/upload-audio?request_id=" +
+    encodeURIComponent(window.currentRoadsideRequestId),
       {
         method: "POST",
         headers: {
