@@ -34,6 +34,9 @@ let latestAudioFile = null;
 let latestAudioContentType = "audio/webm";
 let latestAudioUploadedAt = null;
 
+// Temporary internal roadside assessment storage
+const roadsideAssessments = new Map();
+
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json"
