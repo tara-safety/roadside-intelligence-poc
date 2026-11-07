@@ -762,6 +762,17 @@ if (recommendedResourceText.includes("tow")) {
 }
 
 // Build the internal comparison
+const recommendationDiffers =
+  expectedResource && recommendedResourceCategory
+    ? expectedResource !== recommendedResourceCategory
+    : null;
+
+const comparisonExplanation = recommendationDiffers === true
+  ? "The recommended resource differs from the resource normally expected for the customer's requested service. Dispatcher review is required before any dispatch decision."
+  : recommendationDiffers === false
+    ? "The recommended resource matches the resource normally expected for the customer's requested service."
+    : "The system could not establish a reliable resource comparison. Dispatcher review is required.";
+
 const resourceComparison = {
   customer_requested_service:
     requestData.service_requested || "Not specified",
@@ -773,9 +784,13 @@ const resourceComparison = {
     recommendedResource,
 
   recommendation_differs:
-    expectedResource && recommendedResourceCategory
-      ? expectedResource !== recommendedResourceCategory
-      : null,
+    recommendationDiffers,
+
+  comparison_explanation:
+    comparisonExplanation,
+
+  recommendation_reason:
+    recommendation.reason || "No explanation provided",
 
   dispatcher_review_required: true
 };
