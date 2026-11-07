@@ -221,6 +221,11 @@ async function startRecording() {
 }
 
 async function uploadRecording() {
+    if (!window.currentRoadsideRequestId) {
+    document.getElementById("recordingStatus").textContent =
+      "Please submit your roadside request before uploading a recording.";
+    return;
+  }
   if (!audioChunks.length) {
     document.getElementById("recordingStatus").textContent =
       "No recording available to upload.";
