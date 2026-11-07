@@ -1029,6 +1029,24 @@ if (
     const structuredAnalysis =
       await analyzeLatestAudio(savedAudio.filePath);
 
+  const assessment = roadsideAssessments.get(requestId);
+
+if (!assessment) {
+  sendJson(res, 404, {
+    received: false,
+    error: "Roadside assessment not found."
+  });
+  return;
+}
+
+assessment.request.audio_observations = structuredAnalysis;
+
+assessment.pre_dispatch_recommendation =
+  recommendResource({
+    ...assessment.request,
+    audio_observations: structuredAnalysis
+  });
+    
     console.log(
       `Vehicle audio analysis completed for request ${requestId}.`
     );
