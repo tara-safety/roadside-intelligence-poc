@@ -37,6 +37,9 @@ let latestAudioUploadedAt = null;
 // Temporary internal roadside assessment storage
 const roadsideAssessments = new Map();
 
+// Temporary audio storage linked to individual roadside requests
+const roadsideAudioFiles = new Map();
+
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json"
