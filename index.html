@@ -308,8 +308,13 @@ async function uploadRecording() {
        const data = await response.json();
 
 if (response.ok && data.received) {
-result.textContent =
-"Your roadside assistance request has been received. The information is being reviewed to help determine the appropriate assistance.";
+
+  // Keep the request ID for the optional audio upload
+  window.currentRoadsideRequestId = data.request_id;
+
+  result.textContent =
+    "Your roadside assistance request has been received. The information is being reviewed to help determine the appropriate assistance.";
+
 } else {
 result.textContent =
 "We were unable to submit your request. Please try again.";
