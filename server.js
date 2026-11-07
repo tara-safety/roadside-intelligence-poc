@@ -727,14 +727,30 @@ if (
     // Run the existing roadside recommendation engine
     const recommendation = recommendResource(requestData);
 
-    // Store the internal assessment
-    roadsideAssessments.set(requestId, {
-      request_id: requestId,
-      received_at: new Date().toISOString(),
-      request: requestData,
-      pre_dispatch_recommendation: recommendation
-    });
+    // Compare the customer's requested service with the recommendation
+const requestedResource = requestData.service_requested || "Not specified";
 
+const recommendedResource =
+  recommendation.recommended_resource || "Not specified";
+
+const resourceComparison = {
+  customer_requested: requestedResource,
+  system_recommended: recommendedResource,
+  recommendation_differs:
+    requestedResource.toLowerCase() !==
+    recommendedResource.toLowerCase(),
+  dispatcher_review_required: true
+};
+
+// Store the internal assessment
+roadsideAssessments.set(requestId, {
+  request_id: requestId,
+  received_at: new Date().toISOString(),
+  request: requestData,
+  resource_comparison: resourceComparison,
+  pre_dispatch_recommendation: recommendation
+});
+    
     // Keep storage manageable during testing
     if (roadsideAssessments.size > 100) {
       const oldestRequestId =
