@@ -727,18 +727,56 @@ if (
     // Run the existing roadside recommendation engine
     const recommendation = recommendResource(requestData);
 
-    // Compare the customer's requested service with the recommendation
-const requestedResource = requestData.service_requested || "Not specified";
+  // Compare requested service with the recommended resource
 
+const requestedService =
+  (requestData.service_requested || "").toLowerCase();
+
+// Identify the normal resource expected for each service
+const expectedResourceByService = {
+  tow: "tow",
+  battery: "light_service",
+  flat_tire: "light_service",
+  lockout: "light_service",
+  fuel: "light_service"
+};
+
+// Determine the expected resource category
+const expectedResource =
+  expectedResourceByService[requestedService] || null;
+
+// Get the system's recommended resource
 const recommendedResource =
   recommendation.recommended_resource || "Not specified";
 
+// Classify the recommended resource
+const recommendedResourceText =
+  recommendedResource.toLowerCase();
+
+let recommendedResourceCategory = null;
+
+if (recommendedResourceText.includes("tow")) {
+  recommendedResourceCategory = "tow";
+} else if (recommendedResourceText.includes("light service")) {
+  recommendedResourceCategory = "light_service";
+}
+
+// Build the internal comparison
 const resourceComparison = {
-  customer_requested: requestedResource,
-  system_recommended: recommendedResource,
+  customer_requested_service:
+    requestData.service_requested || "Not specified",
+
+  expected_resource_for_request:
+    expectedResource || "Not established",
+
+  system_recommended:
+    recommendedResource,
+
   recommendation_differs:
-    requestedResource.toLowerCase() !==
-    recommendedResource.toLowerCase(),
+    expectedResource && recommendedResourceCategory
+      ? expectedResource !== recommendedResourceCategory
+      : null,
+
   dispatcher_review_required: true
 };
 
