@@ -785,6 +785,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+  ```javascript
   // Protected internal vehicle sound analysis endpoint
   if (
     req.method === "POST" &&
@@ -814,7 +815,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-       try {
+    try {
       const structuredAnalysis = await analyzeLatestAudio();
 
       console.log("Vehicle audio analysis completed.");
@@ -839,144 +840,10 @@ const server = http.createServer(async (req, res) => {
         error: "Unable to analyze the recording at this time."
       });
     }
-        return;
-      }
-
-      wavFile = await convertAudioToWav(latestAudioFile);
-
-      const wavSize = fs.statSync(wavFile).size;
-
-      if (wavSize > 10 * 1024 * 1024) {
-        sendJson(res, 413, {
-          received: false,
-          error: "The converted recording is too large for this test."
-        });
-        return;
-      }
-
-      const audioBase64 = fs
-        .readFileSync(wavFile)
-        .toString("base64");
-
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY
-      });
-
-            const response = await openai.chat.completions.create({
-        model: "gpt-audio-1.5",
-        modalities: ["text"],
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: [
-                  "You are assisting with a roadside vehicle assessment.",
-                  "Analyze the recording and report only what can reasonably",
-                  "be determined from the audible evidence.",
-                  "Return a valid JSON object with exactly two fields:",
-                  '{"observations":"Short, factual description of the sounds heard.",',
-                  '"possibilities":"Cautious explanation of possible causes, or state that there is insufficient evidence."}',
-                  "In observations, describe only sounds that can actually be heard.",
-                  "Do not include a mechanical diagnosis in observations.",
-                  "In possibilities, describe plausible explanations only when",
-                  "supported by the recording. State that the cause is unconfirmed.",
-                  "Never claim that a mechanical fault is confirmed.",
-                  "Never recommend a dispatch resource based on sound alone.",
-                  "Do not invent sounds or details that cannot reasonably be heard.",
-                  "If the recording is unclear, noisy, or inconclusive, say so.",
-                  "Return JSON only, without Markdown, code fences, or extra text.",
-                  "Both JSON field values must be strings.",
-                  "Keep the response concise and factual."
-                ].join(" ")
-              },
-              {
-                type: "input_audio",
-                input_audio: {
-                  data: audioBase64,
-                  format: "wav"
-                }
-              }
-            ]
-          }
-        ],
-        max_completion_tokens: 300
-      });
-      
-          const analysis = response.choices?.[0]?.message?.content;
-
-      console.log("Vehicle audio analysis completed.");
-
-      if (!analysis || typeof analysis !== "string") {
-        sendJson(res, 502, {
-          received: false,
-          error: "The audio model returned no usable description."
-        });
-        return;
-      }
-
-      let structuredAnalysis;
-
-      try {
-        structuredAnalysis = JSON.parse(analysis);
-      } catch (parseError) {
-        console.error("Audio analysis was not valid JSON.");
-
-        sendJson(res, 502, {
-          received: false,
-          error: "The audio model returned an unexpected response format."
-        });
-        return;
-      }
-
-      if (
-        !structuredAnalysis ||
-        typeof structuredAnalysis !== "object" ||
-        Array.isArray(structuredAnalysis) ||
-        typeof structuredAnalysis.observations !== "string" ||
-        typeof structuredAnalysis.possibilities !== "string"
-      ) {
-        sendJson(res, 502, {
-          received: false,
-          error: "The audio analysis did not contain the expected fields."
-        });
-        return;
-      }
-
-      sendJson(res, 200, {
-        received: true,
-        analysis_type: "vehicle_sound_observation",
-        model: "gpt-audio-1.5",
-        audio_observations: structuredAnalysis,
-        diagnosis_confirmed: false,
-        dispatch_decision_made: false
-      });  
-
-    } catch (error) {
-      console.error(
-        "Vehicle audio analysis failed:",
-        error.message
-      );
-
-      sendJson(res, 500, {
-        received: false,
-        error: "Unable to analyze the recording at this time."
-      });
-
-    } finally {
-      if (wavFile && fs.existsSync(wavFile)) {
-        try {
-          fs.unlinkSync(wavFile);
-        } catch (cleanupError) {
-          console.error("Temporary audio cleanup failed.");
-        }
-      }
-    }
 
     return;
   }
-  
+
   // Unknown route
   sendJson(res, 404, {
     error: "Route not found"
