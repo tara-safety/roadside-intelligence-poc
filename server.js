@@ -470,6 +470,105 @@ function readRequestBody(req) {
   });
 }
 
+async function analyzeLatestAudio() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("Audio analysis is not configured.");
+  }
+
+  if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
+    throw new Error("No saved vehicle recording is available.");
+  }
+
+  let wavFile = null;
+
+  try {
+    const originalSize = fs.statSync(latestAudioFile).size;
+
+    if (originalSize > 8 * 1024 * 1024) {
+      throw new Error("The recording is too large for this test.");
+    }
+
+    wavFile = await convertAudioToWav(latestAudioFile);
+
+    const wavSize = fs.statSync(wavFile).size;
+
+    if (wavSize > 10 * 1024 * 1024) {
+      throw new Error("The converted recording is too large for this test.");
+    }
+
+    const audioBase64 = fs
+      .readFileSync(wavFile)
+      .toString("base64");
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-audio-1.5",
+      modalities: ["text"],
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: [
+                "You are assisting with a roadside vehicle assessment.",
+                "Analyze the recording and report only what can reasonably be determined from the audible evidence.",
+                "Return a valid JSON object with exactly two fields:",
+                '{"observations":"Short, factual description of the sounds heard.","possibilities":"Cautious explanation of possible causes, or state that there is insufficient evidence."}',
+                "Describe only sounds that can actually be heard.",
+                "Do not claim a mechanical fault is confirmed.",
+                "Never recommend a dispatch resource based on sound alone.",
+                "If the recording is unclear, noisy, or inconclusive, say so.",
+                "Return JSON only, without Markdown or extra text."
+              ].join(" ")
+            },
+            {
+              type: "input_audio",
+              input_audio: {
+                data: audioBase64,
+                format: "wav"
+              }
+            }
+          ]
+        }
+      ],
+      max_completion_tokens: 300
+    });
+
+    const analysis = response.choices?.[0]?.message?.content;
+
+    if (!analysis || typeof analysis !== "string") {
+      throw new Error("The audio model returned no usable description.");
+    }
+
+    const structuredAnalysis = JSON.parse(analysis);
+
+    if (
+      !structuredAnalysis ||
+      typeof structuredAnalysis !== "object" ||
+      Array.isArray(structuredAnalysis) ||
+      typeof structuredAnalysis.observations !== "string" ||
+      typeof structuredAnalysis.possibilities !== "string"
+    ) {
+      throw new Error("The audio analysis returned an unexpected format.");
+    }
+
+    return structuredAnalysis;
+
+  } finally {
+    if (wavFile && fs.existsSync(wavFile)) {
+      try {
+        fs.unlinkSync(wavFile);
+      } catch (cleanupError) {
+        console.error("Temporary audio cleanup failed.");
+      }
+    }
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   // Allow browser-based tools to test the plugin
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -715,16 +814,31 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    let wavFile = null;
+       try {
+      const structuredAnalysis = await analyzeLatestAudio();
 
-    try {
-      const originalSize = fs.statSync(latestAudioFile).size;
+      console.log("Vehicle audio analysis completed.");
 
-      if (originalSize > 8 * 1024 * 1024) {
-        sendJson(res, 413, {
-          received: false,
-          error: "The recording is too large for this test."
-        });
+      sendJson(res, 200, {
+        received: true,
+        analysis_type: "vehicle_sound_observation",
+        model: "gpt-audio-1.5",
+        audio_observations: structuredAnalysis,
+        diagnosis_confirmed: false,
+        dispatch_decision_made: false
+      });
+
+    } catch (error) {
+      console.error(
+        "Vehicle audio analysis failed:",
+        error.message
+      );
+
+      sendJson(res, 500, {
+        received: false,
+        error: "Unable to analyze the recording at this time."
+      });
+    }
         return;
       }
 
