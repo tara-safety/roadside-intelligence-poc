@@ -667,28 +667,58 @@ const server = http.createServer(async (req, res) => {
     return;
   } 
 
-  // Customer-facing roadside request endpoint
-  if (
-    req.method === "POST" &&
-    req.url === "/roadside-request"
-  ) {
-    try {
-      await readRequestBody(req);
+ // Customer-facing roadside request endpoint
+if (
+  req.method === "POST" &&
+  req.url === "/roadside-request"
+) {
+  try {
+    const requestData = await readRequestBody(req);
 
-      sendJson(res, 200, {
-        received: true,
-        message: "Roadside request received"
-      });
+    // Generate a unique internal request ID
+    const requestId = crypto.randomUUID();
 
-    } catch (error) {
-      sendJson(res, 400, {
-        received: false,
-        error: "Invalid JSON request"
-      });
+    // Run the existing roadside recommendation engine
+    const recommendation = recommendResource(requestData);
+
+    // Store the internal assessment
+    roadsideAssessments.set(requestId, {
+      request_id: requestId,
+      received_at: new Date().toISOString(),
+      request: requestData,
+      pre_dispatch_recommendation: recommendation
+    });
+
+    // Keep storage manageable during testing
+    if (roadsideAssessments.size > 100) {
+      const oldestRequestId =
+        roadsideAssessments.keys().next().value;
+
+      roadsideAssessments.delete(oldestRequestId);
     }
 
-    return;
+    console.log("Roadside assessment stored:", requestId);
+
+    // Customer receives confirmation only
+    sendJson(res, 200, {
+      received: true,
+      message: "Roadside request received"
+    });
+
+  } catch (error) {
+    console.error(
+      "Roadside request processing failed:",
+      error.message
+    );
+
+    sendJson(res, 400, {
+      received: false,
+      error: "Unable to process roadside request"
+    });
   }
+
+  return;
+}
   
   // Receive and temporarily save vehicle sound recording
   if (req.method === "POST" && req.url === "/upload-audio") {
