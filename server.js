@@ -974,64 +974,89 @@ if (
         return;
       }
 
-  
-  // Protected internal vehicle sound analysis endpoint
-  if (
-    req.method === "POST" &&
-    req.url === "/api/internal/analyze-audio"
-  ) {
-    if (!isAuthorizedInternalRequest(req)) {
-      sendJson(res, 401, {
-        received: false,
-        error: "Unauthorized"
-      });
-      return;
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      sendJson(res, 500, {
-        received: false,
-        error: "Audio analysis is not configured."
-      });
-      return;
-    }
-
-    if (!latestAudioFile || !fs.existsSync(latestAudioFile)) {
-      sendJson(res, 404, {
-        received: false,
-        error: "No saved vehicle recording is available."
-      });
-      return;
-    }
-
-    try {
-      const structuredAnalysis = await analyzeLatestAudio();
-
-      console.log("Vehicle audio analysis completed.");
-
-      sendJson(res, 200, {
-        received: true,
-        analysis_type: "vehicle_sound_observation",
-        model: "gpt-audio-1.5",
-        audio_observations: structuredAnalysis,
-        diagnosis_confirmed: false,
-        dispatch_decision_made: false
-      });
-
-    } catch (error) {
-      console.error(
-        "Vehicle audio analysis failed:",
-        error.message
-      );
-
-      sendJson(res, 500, {
-        received: false,
-        error: "Unable to analyze the recording at this time."
-      });
-    }
-
+// Protected internal vehicle sound analysis endpoint
+if (
+  req.method === "POST" &&
+  req.url.startsWith("/api/internal/analyze-audio")
+) {
+  if (!isAuthorizedInternalRequest(req)) {
+    sendJson(res, 401, {
+      received: false,
+      error: "Unauthorized"
+    });
     return;
   }
+
+  if (!process.env.OPENAI_API_KEY) {
+    sendJson(res, 500, {
+      received: false,
+      error: "Audio analysis is not configured."
+    });
+    return;
+  }
+
+  const analysisUrl = new URL(
+    req.url,
+    "http://localhost"
+  );
+
+  const requestId =
+    analysisUrl.searchParams.get("request_id");
+
+  if (!requestId) {
+    sendJson(res, 400, {
+      received: false,
+      error: "A roadside request ID is required."
+    });
+    return;
+  }
+
+  const savedAudio = roadsideAudioFiles.get(requestId);
+
+  if (
+    !savedAudio ||
+    !savedAudio.filePath ||
+    !fs.existsSync(savedAudio.filePath)
+  ) {
+    sendJson(res, 404, {
+      received: false,
+      error: "No recording was found for this roadside request."
+    });
+    return;
+  }
+
+  try {
+    const structuredAnalysis =
+      await analyzeLatestAudio(savedAudio.filePath);
+
+    console.log(
+      `Vehicle audio analysis completed for request ${requestId}.`
+    );
+
+    sendJson(res, 200, {
+      received: true,
+      request_id: requestId,
+      analysis_type: "vehicle_sound_observation",
+      model: "gpt-audio-1.5",
+      audio_observations: structuredAnalysis,
+      diagnosis_confirmed: false,
+      dispatch_decision_made: false
+    });
+
+  } catch (error) {
+    console.error(
+      "Vehicle audio analysis failed:",
+      error.message
+    );
+
+    sendJson(res, 500, {
+      received: false,
+      error: "Unable to analyze the recording at this time."
+    });
+  }
+
+  return;
+}
 
   // Unknown route
   sendJson(res, 404, {
