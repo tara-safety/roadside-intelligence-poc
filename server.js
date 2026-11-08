@@ -29,6 +29,40 @@ async function convertAudioToWav(inputFile) {
   return outputFile;
 }
 
+async function assessAudioQuality(wavFile) {
+  const result = await execFileAsync(ffmpegPath, [
+    "-i", wavFile,
+    "-af", "silencedetect=noise=-50dB:d=0.5,volumedetect,astats=metadata=1:reset=0",
+    "-f", "null",
+    "-"
+  ]);
+
+  const output = result.stderr || "";
+
+  const meanMatch = output.match(/mean_volume:\s*(-?[\d.]+)\s*dB/i);
+  const maxMatch = output.match(/max_volume:\s*(-?[\d.]+)\s*dB/i);
+  const rmsMatch = output.match(/RMS level dB:\s*(-?[\d.]+)/i);
+  const peakMatch = output.match(/Peak level dB:\s*(-?[\d.]+)/i);
+
+  const silenceDetected = output.includes("silence_start");
+
+  const meanVolume = meanMatch ? Number(meanMatch[1]) : null;
+  const maxVolume = maxMatch ? Number(maxMatch[1]) : null;
+  const rmsLevel = rmsMatch ? Number(rmsMatch[1]) : null;
+  const peakLevel = peakMatch ? Number(peakMatch[1]) : null;
+
+  return {
+    audio_measurement_completed: true,
+    mean_volume_db: meanVolume,
+    maximum_volume_db: maxVolume,
+    rms_level_db: rmsLevel,
+    peak_level_db: peakLevel,
+    silence_detected: silenceDetected,
+    clipping_possible: peakLevel !== null && peakLevel >= -0.5,
+    measurement_source: "FFmpeg"
+  };
+}
+
 const PORT = process.env.PORT || 3000;
 let latestAudioFile = null;
 let latestAudioContentType = "audio/webm";
