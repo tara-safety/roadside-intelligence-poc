@@ -529,6 +529,8 @@ function readRequestBody(req) {
 
     wavFile = await convertAudioToWav(audioFile);
 
+    const audioQuality = await assessAudioQuality(wavFile);
+
     const wavSize = fs.statSync(wavFile).size;
 
     if (wavSize > 10 * 1024 * 1024) {
