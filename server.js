@@ -51,17 +51,35 @@ async function assessAudioQuality(wavFile) {
   const rmsLevel = rmsMatch ? Number(rmsMatch[1]) : null;
   const peakLevel = peakMatch ? Number(peakMatch[1]) : null;
 
-  return {
-    audio_measurement_completed: true,
-    mean_volume_db: meanVolume,
-    maximum_volume_db: maxVolume,
-    rms_level_db: rmsLevel,
-    peak_level_db: peakLevel,
-    silence_detected: silenceDetected,
-    clipping_possible: peakLevel !== null && peakLevel >= -0.5,
-    measurement_source: "FFmpeg"
-  };
+ let technicalRecordingQuality = "UNDETERMINED";
+let qualityNote = "There was not enough measurement information to rate this recording.";
+
+if (meanVolume !== null && peakLevel !== null) {
+  if (meanVolume < -35) {
+    technicalRecordingQuality = "POOR";
+    qualityNote = "The recording signal is very quiet. Vehicle sounds may be difficult to assess.";
+  } else if (peakLevel >= -1) {
+    technicalRecordingQuality = "FAIR";
+    qualityNote = "The recording has a peak close to the digital maximum. Audio distortion may be possible.";
+  } else {
+    technicalRecordingQuality = "GOOD";
+    qualityNote = "The recording has a measurable signal level and no near-maximum peak warning.";
+  }
 }
+
+return {
+  audio_measurement_completed: true,
+  mean_volume_db: meanVolume,
+  maximum_volume_db: maxVolume,
+  rms_level_db: rmsLevel,
+  peak_level_db: peakLevel,
+  silence_detected: silenceDetected,
+  clipping_possible: peakLevel !== null && peakLevel >= -0.5,
+  technical_recording_quality: technicalRecordingQuality,
+  quality_note: qualityNote,
+  measurement_source: "FFmpeg"
+};
+   }
 
 const PORT = process.env.PORT || 3000;
 let latestAudioFile = null;
