@@ -597,7 +597,10 @@ function readRequestBody(req) {
       throw new Error("The audio analysis returned an unexpected format.");
     }
 
-    return structuredAnalysis;
+    return {
+  ...structuredAnalysis,
+  audio_quality: audioQuality
+};
 
   } finally {
     if (wavFile && fs.existsSync(wavFile)) {
