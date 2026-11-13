@@ -578,9 +578,17 @@ function readRequestBody(req) {
                 "Return a valid JSON object with exactly two fields:",
                 '{"observations":"Short, factual description of the sounds heard.","possibilities":"Cautious explanation of possible causes, or state that there is insufficient evidence."}',
                 "Describe only sounds that can actually be heard.",
+                "Distinguish vehicle sounds from possible background or environmental sounds where reasonably possible.",
+                "Consider wind, rain, traffic, other vehicles, microphone handling noise, and people talking in the background.",
+                "If background noise is present, describe what is audible without guessing its source.",
+                "Do not confuse loud audio with background noise.",
+                "Do not claim that speech or conversations have been removed or excluded.",
+                "Do not transcribe, identify, or interpret conversations or speech.",
+                "If speech is audible, only report that possible background speech is present.",
+                "If background noise makes the vehicle sound difficult to assess, clearly say so.",
+                "Never invent vehicle sounds or mechanical problems to compensate for unclear audio.",
                 "Do not claim a mechanical fault is confirmed.",
                 "Never recommend a dispatch resource based on sound alone.",
-                "If the recording is unclear, noisy, or inconclusive, say so.",
                 "Return JSON only, without Markdown or extra text."
               ].join(" ")
             },
