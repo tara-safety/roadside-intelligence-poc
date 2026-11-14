@@ -225,11 +225,12 @@ async function startRecording() {
 }
 
 async function uploadRecording() {
-    if (!window.currentRoadsideRequestId) {
+  if (!window.currentRoadsideRequestId) {
     document.getElementById("recordingStatus").textContent =
       "Please submit your roadside request before uploading a recording.";
     return;
   }
+
   if (!audioChunks.length) {
     document.getElementById("recordingStatus").textContent =
       "No recording available to upload.";
@@ -240,24 +241,59 @@ async function uploadRecording() {
     type: mediaRecorder.mimeType
   });
 
-  const formData = new FormData();
-  formData.append("audio", audioBlob, "vehicle-sound.webm");
-
-  
-  document.getElementById("recordingStatus").textContent =
-    "Uploading recording...";
-
   try {
 
+    // PRIVACY CHECK: Detect speech locally before uploading
+    document.getElementById("recordingStatus").textContent =
+      "Checking recording for speech. Nothing is being uploaded yet...";
+
+    let speechSegments = [];
+
     try {
-   const response = await fetch(
-  "https://roadside-intelligence-poc.onrender.com/upload-audio?request_id=" +
-    encodeURIComponent(window.currentRoadsideRequestId),
-      {
-    
-   const response = await fetch(
-  "https://roadside-intelligence-poc.onrender.com/upload-audio?request_id=" +
-    encodeURIComponent(window.currentRoadsideRequestId),
+      const { audio, sampleRate } =
+        await vad.utils.audioFileToArray(audioBlob);
+
+      const speechDetector = await vad.NonRealTimeVAD.new();
+
+      for await (const segment of speechDetector.run(audio, sampleRate)) {
+        speechSegments.push(segment);
+      }
+
+    } catch (vadError) {
+      console.error("Local speech detection failed:", vadError);
+
+      audioChunks = [];
+
+      document.getElementById("recordingStatus").textContent =
+        "Privacy check could not be completed. Recording was not uploaded. Please try again.";
+
+      return;
+    }
+
+    // Reject recording if speech is detected
+    if (speechSegments.length > 0) {
+      audioChunks = [];
+
+      const audioPlayback = document.getElementById("audioPlayback");
+
+      audioPlayback.pause();
+      audioPlayback.removeAttribute("src");
+      audioPlayback.load();
+      audioPlayback.style.display = "none";
+
+      document.getElementById("recordingStatus").textContent =
+        "Possible speech detected. Recording rejected and not uploaded. Please record again somewhere quieter.";
+
+      return;
+    }
+
+    // No speech detected: continue with the existing upload
+    document.getElementById("recordingStatus").textContent =
+      "No speech detected. Uploading recording...";
+
+    const response = await fetch(
+      "https://roadside-intelligence-poc.onrender.com/upload-audio?request_id=" +
+        encodeURIComponent(window.currentRoadsideRequestId),
       {
         method: "POST",
         headers: {
